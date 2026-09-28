@@ -1710,6 +1710,29 @@ if(r==='exam')tInt=setInterval(()=>{if(!S.test)return;S.test.left=Math.max(0,S.t
 if(r==='practice')pInt=setInterval(()=>{S.pr.left=Math.max(0,S.pr.left-1);const el=$('#ptmr');if(el)el.textContent=fmt(S.pr.left)},1000);
 if(r!=='video'&&S.vid.playing){clearInterval(vInt);S.vid.playing=false}}
 
+/* ============ DEMO LOGIN (prototype) ============ */
+const DEMO={student:{id:['student@entrancedose.com','9800000000'],pw:'Student@123'},admin:{id:['admin@entrancedose.com'],pw:'Admin@123'}};
+S.adminAuthed=false;
+document.head.insertAdjacentHTML('beforeend',`<style>.demo{border:1px dashed #9DB8F2;background:#F4F8FF;border-radius:14px;padding:14px;margin-top:20px}.demo b{font-size:14px}.demo-r{display:grid;grid-template-columns:62px 1fr auto;gap:2px 10px;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid #E1E9FA;font-size:13px}.demo-r code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;color:#1D3FB8;word-break:break-all}.demo-r button{height:34px;padding:0 14px;border-radius:9px;background:#1769FF;color:#fff;font-weight:700;font-size:12.5px;grid-row:span 2}.demo-r span{grid-row:span 2;font-weight:700;color:#344054}.al{min-height:100vh;display:grid;place-items:center;padding:20px;background:radial-gradient(60% 50% at 80% 10%,rgba(124,77,255,.35),transparent 60%),linear-gradient(160deg,#040C1E,#0B1F3A)}.al-card{width:100%;max-width:430px;background:#fff;border-radius:22px;padding:26px;box-shadow:0 30px 60px -30px rgba(0,0,0,.6)}</style>`);
+function demoBox(kinds){return `<div class="demo"><b>Demo login for the prototype</b><p class="xs muted" style="margin-top:2px">Tap Use to fill the details, then continue.</p>${kinds.map(k=>{const d=k==='s'?DEMO.student:DEMO.admin;return `<div class="demo-r"><span>${k==='s'?'Student':'Admin'}</span><code>${d.id[0]}</code><button type="button" onclick="fillDemo('${k}')">Use</button><code>${d.pw}</code></div>`}).join('')}</div>`}
+function fillDemo(k){const d=k==='s'?DEMO.student:DEMO.admin;const a=$('#lid')||$('#aid'),p=$('#lpw')||$('#apw');if(a)a.value=d.id[0];if(p)p.value=d.pw;toast((k==='s'?'Student':'Admin')+' demo details filled')}
+function doLogin(){const a=$('#lid'),b=$('#lpw'),id=a.value.trim().toLowerCase(),pw=b.value;$('#lide').textContent=id?'':'Enter your mobile number or email.';$('#lpwe').textContent=pw?'':'Enter your password.';if(!id||!pw)return;
+if(DEMO.admin.id.includes(id)&&pw===DEMO.admin.pw){S.adminAuthed=true;S.authed=true;go('admin');toast('Signed in as admin');return}
+if(DEMO.student.id.includes(id)&&pw===DEMO.student.pw){S.authed=true;go('home');toast('Welcome back, '+S.user);return}
+$('#lpwe').textContent='Incorrect login details. Use the demo login above.'}
+function adminLogin(){return `<div class="al page"><div class="al-card"><div class="row between">${logo(false,36)}<button class="icbtn" onclick="go('landing')" aria-label="Back to website">${ic('x')}</button></div><h1 style="font-size:22px;margin-top:22px">Admin sign in</h1><p class="sm muted mt8">Manage banners, courses, tests and students.</p>${demoBox(['a'])}<form class="mt16" onsubmit="event.preventDefault();adminDoLogin()" novalidate>${field('Email','email','aid','admin@entrancedose.com','mail')}${field('Password','password','apw','Enter password','lock')}<button class="btn btn-p btn-block">Sign in</button></form></div></div>`}
+function adminDoLogin(){const id=$('#aid').value.trim().toLowerCase(),pw=$('#apw').value;$('#aide').textContent=id?'':'Enter your email.';$('#apwe').textContent=pw?'':'Enter your password.';if(!id||!pw)return;if(DEMO.admin.id.includes(id)&&pw===DEMO.admin.pw){S.adminAuthed=true;render();window.scrollTo(0,0);toast('Signed in as admin')}else $('#apwe').textContent='Incorrect admin details. Use the demo login above.'}
+function finishOb(){S.exam=EXAMS[S.ob.exam]?S.ob.exam:'CEE';S.pf.exam=S.exam;S.plan=null;S.authed=true;go('home');toast(`All set! Your ${S.exam} dashboard is ready`)}
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('button');if(b&&b.textContent.trim()==='Logout'){S.authed=false;S.adminAuthed=false}},true);
+function go(r){if(r!=='admin'&&!PUBLIC.includes(r)&&!S.authed){S.auth='login';if(S.route!=='auth')toast('Log in to open your dashboard');r='auth'}if(r==='exam'&&!S.test)startTest(0);S.route=r;S.drawer=false;closeModal();render();window.scrollTo(0,0);if(location.hash!=='#'+r)history.pushState(null,'','#'+r)}
+function render(){let r=S.route;if(r!=='admin'&&!PUBLIC.includes(r)&&!S.authed){r=S.route='auth';S.auth='login'}let h;const PUB={landing,auth,coursepage:coursePage,catalog:catalogPage,about:aboutPage,contact:contactPage};
+if(PUB[r])h=PUB[r]();else if(r==='exam'){if(!S.test)startTest(0);h=examUI()}else if(r==='admin')h=S.adminAuthed?adminShell():adminLogin();else h=shell((PAGES[r]||home)());
+if(r==='auth'&&S.auth==='login')h=h.replace('<form class="mt24" onsubmit="event.preventDefault();doLogin()"',demoBox(['s','a'])+'<form class="mt24" onsubmit="event.preventDefault();doLogin()"');
+$('#app').innerHTML=h;clearInterval(tInt);clearInterval(pInt);
+if(r==='exam')tInt=setInterval(()=>{if(!S.test)return;S.test.left=Math.max(0,S.test.left-1);const el=$('#tmr');if(el)el.textContent=fmt(S.test.left);if(S.test.left===0){clearInterval(tInt);submitTest()}},1000);
+if(r==='practice')pInt=setInterval(()=>{S.pr.left=Math.max(0,S.pr.left-1);const el=$('#ptmr');if(el)el.textContent=fmt(S.pr.left)},1000);
+if(r!=='video'&&S.vid.playing){clearInterval(vInt);S.vid.playing=false}}
+
 (function(){const h=location.hash.slice(1);if(ROUTES.includes(h))S.route=h;render()})();
 </script>
 </body>
